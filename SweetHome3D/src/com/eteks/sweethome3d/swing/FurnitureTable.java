@@ -750,8 +750,28 @@ public class FurnitureTable extends JTable implements View, Printable {
           return headerRendererLabel;
         }
       };
+    List<TableColumn> printedColumns = new ArrayList<TableColumn>();
     for (int columnIndex = 0, n = columnModel.getColumnCount(); columnIndex < n; columnIndex++) {
-      final TableColumn tableColumn = columnModel.getColumn(columnIndex);
+      printedColumns.add(columnModel.getColumn(columnIndex));
+    }
+    // Print furniture of all levels with a Level column so that rows are distinguishable,
+    // without changing the columns displayed on screen
+    Home home = (Home)((FurnitureTreeTableModel)getModel()).getRoot();
+    if (!home.getLevels().isEmpty()
+        && columnModel instanceof FurnitureTableColumnModel
+        && !home.getFurnitureVisibleProperties().contains(HomePieceOfFurniture.SortableProperty.LEVEL)) {
+      TableColumn levelColumn = ((FurnitureTableColumnModel)columnModel).getAvailableColumn(
+          HomePieceOfFurniture.SortableProperty.LEVEL);
+      // Insert Level column after Name column, or first if Name isn't displayed
+      int levelColumnIndex = 0;
+      for (int i = 0; i < printedColumns.size(); i++) {
+        if (printedColumns.get(i).getIdentifier() == HomePieceOfFurniture.SortableProperty.NAME) {
+          levelColumnIndex = i + 1;
+        }
+      }
+      printedColumns.add(levelColumnIndex, levelColumn);
+    }
+    for (final TableColumn tableColumn : printedColumns) {
       // Create a printable column from existing table column
       TableColumn printableColumn = new TableColumn();
       printableColumn.setIdentifier(tableColumn.getIdentifier());
@@ -1015,6 +1035,13 @@ public class FurnitureTable extends JTable implements View, Printable {
       addHomeListener(home);
       addLanguageListener(preferences);
       updateModelColumns(home.getFurnitureVisibleProperties());
+    }
+
+    /**
+     * Returns the column matching the given <code>property</code>, displayed or not.
+     */
+    public TableColumn getAvailableColumn(HomePieceOfFurniture.SortableProperty property) {
+      return this.availableColumns.get(property);
     }
 
     /**
